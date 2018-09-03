@@ -1,0 +1,6 @@
+framework module Pods_EazeWorkTests {
+  umbrella header "Pods-EazeWorkTests-umbrella.h"
+
+  export *
+  module * { export * }
+}
