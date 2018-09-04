@@ -74,7 +74,7 @@ class Constants {
     static let FILE_GET_MENU_DATA = "LoginService.svc/GetMenuData"
     static let FILE_GET_PROFILE = "WCFService/TeamService.svc/GetEmployeeDetails"
     static let FILE_GET_EMPLOYEE_PROFILE = "LoginService.svc/EmpProfile"
-    
+    static let FILE_GET_ProfilePic_Upload =  FILE_WCF_SERVICE + "EmployeeService.svc/UploadProfilePic"
     static let FILE_GET_LEAVE_BALANCES = "WCFService/LeaveService.svc/GetEmpLeaveBalances"
     static let FILE_GET_LEAVE_REQUESTS = "WCFService/LeaveService.svc/GetEmpLeaveRequests"
     static let FILE_LEAVE_UPDATE = "WCFService/LeaveService.svc/UpdateEmpPendingReq"
@@ -652,7 +652,7 @@ class Constants {
         ]
         return parameters
     }
-    func UploadProfile(requestType: String, length: String, base64Data: String) ->  Parameters {
+    func UploadProfile(name:String , extention: String,length: String, base64Data: String) ->  Parameters {
         let parameters: Parameters = [
             "loginData": [
                 "DeviceID":SharedManager.shareData().deviceID!,

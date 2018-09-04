@@ -788,8 +788,9 @@ class CreateEditLocationViewController: UIViewController, UITextViewDelegate,UIT
         
             }
         
-        }else{
-            
+        }
+       
+        else{
             
             if isImageCaptured {
                 
