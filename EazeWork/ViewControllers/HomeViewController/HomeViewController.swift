@@ -1291,9 +1291,6 @@ class HomeViewController: UIViewController,UITableViewDelegate,UITableViewDataSo
                         self.getForceLogout()
                     }
                 }
-                else{
-                    
-                }
             }
             self.enableTimeInBreakInButton()
             activityIndicatorView.stopAnimating()
