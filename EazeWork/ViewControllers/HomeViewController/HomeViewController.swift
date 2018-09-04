@@ -11,6 +11,12 @@ import Alamofire
 import SDWebImage
 import CoreLocation
 import SWActivityIndicatorView
+
+public enum ImageFormat {
+    case png
+    case jpeg(CGFloat)
+}
+
 class HomeViewController: UIViewController,UITableViewDelegate,UITableViewDataSource,CLLocationManagerDelegate,UIImagePickerControllerDelegate,UINavigationControllerDelegate {
     
     @IBOutlet weak var viewForTopView           : UIView!
@@ -1224,25 +1230,10 @@ class HomeViewController: UIViewController,UITableViewDelegate,UITableViewDataSo
     func opencamera(){
         self.picker.allowsEditing = false
         self.picker.sourceType = UIImagePickerControllerSourceType.camera
-        
-        if UIDevice.current.userInterfaceIdiom == .phone
-        {
-            self.present(self.picker, animated: true, completion: nil)
-        }
-        else
-        {
-            let imagePicker = UIImagePickerController()
-            imagePicker.delegate = self;
-            imagePicker.sourceType = UIImagePickerControllerSourceType.camera
-            imagePicker.modalPresentationStyle = .popover
-            imagePicker.popoverPresentationController?.sourceView = self.imgVwForProfilePic // you can also pass any view
-            self.present(imagePicker, animated: true)
-        }
-        self.picker.cameraCaptureMode = .photo
-        self.picker.modalPresentationStyle = .popover
-        self.present(self.picker,animated: true,completion: nil)
+        self.picker.delegate = self
+        self.present(self.picker, animated: true, completion: nil)
+
     }
-   
     func openGallery() {
         self.picker.allowsEditing = false
         self.picker.sourceType = .photoLibrary
@@ -1256,33 +1247,74 @@ class HomeViewController: UIViewController,UITableViewDelegate,UITableViewDataSo
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any])
     {
-        
-        if let image = info[UIImagePickerControllerEditedImage] as? UIImage {
-            // imageView.image = image
-            imgVwForProfilePic.image = image
-            var imageData = UIImageJPEGRepresentation(image, 0)
-            imageDataToSend = self.compressImage(image: image)
-            isImageCaptured = true
-            self.uploadProfilePic()
-        }
-        else if let image = info[UIImagePickerControllerOriginalImage] as? UIImage {
-            imgVwForProfilePic.image = image
-            var imageData = UIImageJPEGRepresentation(image, 0)
-            imageDataToSend = self.compressImage(image: image)
-            isImageCaptured = true
-            self.uploadProfilePic()
-        } else{
-            print("Something went wrong")
-            imgVwForProfilePic.image = nil;
-        }
-        
+        imgVwForProfilePic.image=info[UIImagePickerControllerOriginalImage] as? UIImage
         dismiss(animated:true, completion: nil)
+        DispatchQueue.main.asyncAfter(deadline: .now()+0.2, execute: ({
+            self.uploadProfilePicture()
+            
+        }))
+        
+      
     }
     
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         dismiss(animated: true, completion: nil)
     }
+    func uploadProfilePicture(){
+        
+        let activityIndicatorView = SWActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 50, height: 50))
+        self.view.addSubview(activityIndicatorView)
+        
+        activityIndicatorView.lineWidth = 2
+        activityIndicatorView.autoStartAnimating = true
+        activityIndicatorView.hidesWhenStopped = true
+        activityIndicatorView.color = SharedManager.shareData().headerBGColor
+        activityIndicatorView.center = self.view.center
+        activityIndicatorView.startAnimating()
+        
+        let urlPath: String = SharedManager.shareData().base_URL + Constants.FILE_GET_ProfilePic_Upload
+        let parameters = self.getuploaddata()
+        //print(parameters)
+        
+        
+        //
+        Alamofire.request(urlPath, method: .post, parameters: parameters, encoding: JSONEncoding.default).responseJSON { response in
+            if let json = response.result.value as? [String: Any] {
+                if let UploadProfilePicResult = json["UploadProfilePicResult"] as? [String: Any]
+                {
+                    let errorCode: Int = (UploadProfilePicResult["ErrorCode"] as? Int)!
+                    if errorCode == 0
+                    {
+                        print("profile pic uploaded")
+                    }
+                    else if errorCode == -999 {
+                        self.getForceLogout()
+                    }
+                }
+                else{
+                    
+                }
+            }
+            self.enableTimeInBreakInButton()
+            activityIndicatorView.stopAnimating()
+        }
+    }
     
+    func getuploaddata() -> Parameters {
+        let parameters: Parameters = [
+            "loginData": [
+                "DeviceID":SharedManager.shareData().deviceID!,
+                "SessionID":SharedManager.shareData().sessionID!
+            ],
+            "FileInfo":[
+                "Name": "sample.jpeg",
+                "Extension": ".jpeg",
+                "Base64Data":imgVwForProfilePic.image?.base64(format:.jpeg(10)),
+                "Length":"10"
+            ]
+        ]
+        return parameters
+    }
     func compressImage(image:UIImage) -> NSData {
         // Reducing file size to a 10th
         
@@ -1322,39 +1354,16 @@ class HomeViewController: UIViewController,UITableViewDelegate,UITableViewDataSo
         UIGraphicsEndImageContext();
         return imageData as NSData!
     }
-
-    func uploadProfilePic(){
-//
-//        let constant = Constants()
-//        var parameters = Parameters()
-//
-//        let activityIndicatorView = SWActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 50, height: 50))
-//        self.view.addSubview(activityIndicatorView)
-//
-//        activityIndicatorView.lineWidth = 2
-//        activityIndicatorView.autoStartAnimating = true
-//        activityIndicatorView.hidesWhenStopped = true
-//        activityIndicatorView.color = SharedManager.shareData().headerBGColor
-//
-//        activityIndicatorView.center = self.view.center
-//        activityIndicatorView.startAnimating()
-//
-//        if isImageCaptured {
-//
-//            let  imageString = imageDataToSend.base64EncodedString(options:NSData.Base64EncodingOptions(rawValue: 0))
-//
-//
-//
-//    }
-    }
-    /*
-     // MARK: - Navigation
-     
-     // In a storyboard-based application, you will often want to do a little preparation before navigation
-     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-     // Get the new view controller using segue.destinationViewController.
-     // Pass the selected object to the new view controller.
-     }
-     */
     
+}
+extension UIImage {
+    
+    public func base64(format: ImageFormat) -> String? {
+        var imageData: Data?
+        switch format {
+        case .png: imageData = UIImagePNGRepresentation(self)
+        case .jpeg(let compression): imageData = UIImageJPEGRepresentation(self, compression)
+        }
+        return imageData?.base64EncodedString()
+    }
 }
