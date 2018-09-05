@@ -29,8 +29,15 @@ class ViewController: UIViewController,GIDSignInUIDelegate,GIDSignInDelegate {
     @IBOutlet weak var labelForRegisterDemo: UILabel!
     @IBOutlet weak var imgBtnForPasswordView:UIImageView!
     
+    @IBOutlet var forgotCredentialsView: UIView!
+    @IBOutlet var btnForgotCredentials: UIButton!
+    // @IBOutlet var labelForgotCredentials: UILabel!
     @IBOutlet weak var imageVwForDataLoad: UIImageView!
     
+    @IBOutlet var btnOk: UIButton!
+    @IBOutlet var btnCancel: UIButton!
+   
+    @IBOutlet var textFieldForEmail: UITextField!
     @IBOutlet weak var btnGmaiLogin: GIDSignInButton!
     
    
@@ -41,7 +48,7 @@ class ViewController: UIViewController,GIDSignInUIDelegate,GIDSignInDelegate {
         
         
         imageVwForDataLoad.isHidden = false
-        
+        forgotCredentialsView.isHidden = true
         self.btnForLogin.backgroundColor = BUTTON_GREEN_BG_COLOR
         self.btnForLogin.layer.cornerRadius = 8
         self.view.backgroundColor = UIColor(red: (227/255.0), green: (228/255.0), blue: (228/255.0), alpha: 1.0)
@@ -49,9 +56,23 @@ class ViewController: UIViewController,GIDSignInUIDelegate,GIDSignInDelegate {
         self.editTextField(textField: self.textFieldForURL)
         self.editTextField(textField: self.textFieldForUsername)
         self.editTextField(textField: self.textFieldForPassword)
+        self.addPaddingTextField(textField: self.textFieldForEmail)
+      
         let defaults = UserDefaults.standard
         
-      
+//        let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: textFieldForEmail.frame.width, height: textFieldForEmail.frame.height))
+//        textFieldForEmail.leftView = paddingView
+//        textFieldForEmail.leftViewMode = UITextFieldViewMode.always
+       
+//        textFieldForEmail.leftView = UIView(frame: CGRect(x: 0, y: 0, width: textFieldForEmail.frame.width, height: textFieldForEmail.frame.height))
+//        textFieldForEmail.leftViewMode = .always
+        
+//        // Create a padding view for padding on right
+//        textFieldForEmail.rightView = UIView(frame: CGRect(x: 0, y: 0, width: textFieldForEmail.frame.width, height: textFieldForEmail.frame.height))
+//        textFieldForEmail.rightViewMode = .always
+        
+        
+        
         var error: NSError?
         if(error != nil){
             print("Error is:",error!)
@@ -85,6 +106,7 @@ class ViewController: UIViewController,GIDSignInUIDelegate,GIDSignInDelegate {
     }
     
     func sign(_ signIn: GIDSignIn!, didSignInFor user: GIDGoogleUser!, withError error: Error!) {
+    
         if (textFieldForURL.text?.characters.count)! == 0 {
             let refreshAlert = UIAlertController(title: "", message:"Please Enter URL" , preferredStyle: UIAlertControllerStyle.alert)
             refreshAlert.addAction(UIAlertAction(title: "Ok", style: .default, handler: { (action: UIAlertAction!) in
@@ -213,7 +235,131 @@ class ViewController: UIViewController,GIDSignInUIDelegate,GIDSignInDelegate {
     
         // Sign out
         GIDSignIn.sharedInstance().signOut()
+     
 
+    }
+    
+    @IBAction func btnForgotCredentials(_ sender: Any) {
+         forgotCredentialsView.isHidden = false
+        textFieldForEmail.text = ""
+    }
+    
+    
+    @IBAction func btnCancel(_ sender: Any) {
+        forgotCredentialsView.isHidden = true
+    }
+    
+     @IBAction func btnOk(_ sender: Any) {
+        var email: String = textFieldForEmail.text!
+        if (textFieldForEmail.text?.characters.count)! == 0 {
+            let refreshAlert = UIAlertController(title: "", message:"Please Enter Email Id" , preferredStyle: UIAlertControllerStyle.alert)
+            refreshAlert.addAction(UIAlertAction(title: "Ok", style: .default, handler: { (action: UIAlertAction!) in
+            }))
+            self.present(refreshAlert, animated: true, completion: nil)
+            return
+        } else{
+            let activityIndicatorView = SWActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 50, height: 50))
+            self.view.addSubview(activityIndicatorView)
+            
+            activityIndicatorView.lineWidth = 2
+            activityIndicatorView.autoStartAnimating = true
+            activityIndicatorView.hidesWhenStopped = true
+            activityIndicatorView.color = TOP_COLOR
+            activityIndicatorView.center = self.view.center
+            activityIndicatorView.startAnimating()
+            var corpURL: String = textFieldForURL.text!
+            
+            let defaults = UserDefaults.standard
+            
+            if (textFieldForURL.text?.contains("t*"))! || (textFieldForURL.text?.contains("T*"))! {
+                let index: String.Index = corpURL.index(corpURL.startIndex, offsetBy: 2)
+                corpURL = corpURL.substring(from: index)
+                defaults.set(Constants.TEST_MODE, forKey: "BaseURL")
+                SharedManager.shareData().base_URL = Constants.TEST_MODE
+            }else if(textFieldForURL.text?.contains("s*"))! || (textFieldForURL.text?.contains("S*"))! {
+                let index: String.Index = corpURL.index(corpURL.startIndex, offsetBy: 2)
+                corpURL = corpURL.substring(from: index)
+                defaults.set(Constants.STAGING_MODE, forKey: "BaseURL")
+                SharedManager.shareData().base_URL = Constants.STAGING_MODE
+            }else{
+                defaults.set(Constants.PRODUCTION_MODE, forKey: "BaseURL")
+                SharedManager.shareData().base_URL = Constants.PRODUCTION_MODE
+            }
+            
+            let urlPath: String = SharedManager.shareData().base_URL + Constants.FORGOT_CREDENTIALS_REQUEST
+            print("Forgot Credentials url:",urlPath)
+            
+            let constant = Constants()
+            
+            let parameters = constant.getForgotCredentialsJsonData(emailId: email)
+            
+            print("parameters : \(parameters)")
+            
+            
+            Alamofire.request(urlPath, method: .post, parameters: parameters, encoding: JSONEncoding.default).responseJSON { response in
+                
+                activityIndicatorView.stopAnimating()
+                if let statusCode = response.response?.statusCode {
+                    print("statusCode : \(statusCode)")
+                }
+                
+                if let json = response.result.value as? [String: Any] {
+                    
+                    print("response : \(json)")
+                    
+                    
+                    let forgetCredentialsResult = json["ForgetCredentialsResult"] as? [String: Any]
+                    let errorCode: Int = (forgetCredentialsResult?["ErrorCode"] as? Int)!
+                    
+                    
+                    
+                    if errorCode == -5{
+                        
+                        
+                        if let errorMessage: String = (forgetCredentialsResult?["ErrorMessage"] as? String) {
+                            
+                            let alert = UIAlertController(title: nil, message: errorMessage, preferredStyle: .alert)
+                            
+                            let ok = UIAlertAction(title: "OK", style: .default) { _ in
+                                print("pressed")
+                                  self.forgotCredentialsView.isHidden = true
+                            }
+                            alert.addAction(ok)
+                            UIApplication.shared.keyWindow?.rootViewController?.present(alert, animated: true, completion: nil)
+                          
+                            
+                        }
+                        
+                    }else if errorCode == -9 {
+                        
+                        if let errorMessage: String = (forgetCredentialsResult?["ErrorMessage"] as? String) {
+                            
+                            self.showVersionControll(errorMsg: errorMessage)
+                        
+                        }
+                    }
+                        
+                    else{
+                        if let errorMessage: String = (forgetCredentialsResult?["ErrorMessage"] as? String) {
+                            
+                            let alert = UIAlertController(title: nil, message: errorMessage, preferredStyle: .alert)
+                            
+                            let ok = UIAlertAction(title: "OK", style: .default) { _ in
+                                print("pressed")
+                                  self.forgotCredentialsView.isHidden = true
+                            }
+                            alert.addAction(ok)
+                            UIApplication.shared.keyWindow?.rootViewController?.present(alert, animated: true, completion: nil)
+                        
+                        }
+                        
+                        
+                        
+                    }
+                }
+            }
+        }
+        
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -256,6 +402,28 @@ class ViewController: UIViewController,GIDSignInUIDelegate,GIDSignInDelegate {
         textField.autocorrectionType = UITextAutocorrectionType.no
     }
     
+    
+  
+    func addPaddingTextField(textField : UITextField){
+       
+    
+        
+        let paddingView = UIView.init(frame: CGRect.init(x: 0, y: 0, width: 10, height: 10))
+        textField.rightView = paddingView
+        textField.rightViewMode = UITextFieldViewMode.always
+    
+        
+        textField.leftView = paddingView
+        textField.leftViewMode = UITextFieldViewMode.always
+        
+
+        
+        textField.addTarget(self, action: #selector(UIResponder.resignFirstResponder), for: UIControlEvents.editingDidEndOnExit)
+        textField.autocorrectionType = UITextAutocorrectionType.no
+    }
+    
+
+    
     @IBAction func showPassword(_ sender: UIButton) {
         //        imgBtnForPasswordView.image = UIImage.init(named: "plus")
         textFieldForPassword.isSecureTextEntry = false
@@ -291,6 +459,8 @@ class ViewController: UIViewController,GIDSignInUIDelegate,GIDSignInDelegate {
             self.present(refreshAlert, animated: true, completion: nil)
         }
     }
+    
+   
     
     
     @IBAction func onClickRegisterDemo(_ sender: UIButton) {

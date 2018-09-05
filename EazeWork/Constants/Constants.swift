@@ -65,6 +65,7 @@ class Constants {
     
     //Sunaina
     static let FILE_LOGIN_GOOGLE = "WCFService/LoginService.svc/LoginUserWithGoogle"
+    static let FORGOT_CREDENTIALS_REQUEST = FILE_WCF_SERVICE + "EmployeeService.svc/ForgetCredentials"
     
     //
     
@@ -157,6 +158,20 @@ class Constants {
                 "OS":OS_Version,
                 "FCMToken":fcmToken
             ]
+        ]
+        return parameters
+    }
+    
+    func getForgotCredentialsJsonData(emailId: String) -> Parameters{
+        
+        let systemVersion = UIDevice.current.systemVersion
+        //NSLog("systemVersion = %@", systemVersion)
+        //NSLog("systemVersion = %@", String(systemVersion))
+        
+        
+        
+        let parameters: Parameters = [
+            "email":emailId
         ]
         return parameters
     }
